@@ -47,7 +47,7 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(600, 400);
+  createCanvas(600, 400).parent("canvas-wrapper");
   tf.setBackend("cpu");
 
   angleMode(DEGREES);
@@ -76,11 +76,6 @@ function setup() {
       }
     }
   });
-  createA(
-    "https://lemon-man125.github.io/FlappyBird-Load/",
-    "Flappy Bird Load",
-    "_blank"
-  );
   for (let i = 0; i < TOTAL; i++) {
     let player = new Bird();
     activePlayers[i] = player;
