@@ -1,6 +1,6 @@
 class Pipe {
   constructor() {
-    this.spacing = 65;
+    this.spacing = random(65, height/2);
     this.centery = random(this.spacing, height - this.spacing);
     this.pos = createVector(width, height);
     this.vel = createVector(-6, 0);
