@@ -1,194 +1,427 @@
-// Daniel Shiffman
-// Nature of Code: Intelligence and Learning
-// https://github.com/shiffman/NOC-S17-2-Intelligence-Learning
+// class NeuroEvolution {
+//   constructor(a, b, c, d) {
+//     if (a instanceof tf.Sequential) {
+//       this.model = a;
+//       this.in = b;
+//       this.hn = c;
+//       this.on = d;
+//       // this.task = task;
+//     } else {
+//       this.in = a;
+//       this.hn = b;
+//       this.on = c;
+//       this.model = this.createModel();
+//       // this.task = d != null ? d : "classification";
+//     }
+//   }
 
-// Based on "Make Your Own Neural Network" by Tariq Rashid
-// https://github.com/makeyourownneuralnetwork/
+//   copy() {
+//     return tf.tidy(() => {
+//       const modelCopy = this.createModel();
+//       const weights = this.model.getWeights();
+//       const weightCopies = [];
+//       for (let i = 0; i < weights.length; i++) {
+//         weightCopies[i] = weights[i].clone();
+//       }
 
-// This version of nn.js adds some functionality for evolution
-// copy() and mutate()
+//       modelCopy.setWeights(weightCopies);
+//       return new NeuroEvolution(modelCopy, this.in, this.hn, this.on);
+//     });
+//   }
 
-// Sigmoid function
-// This is used for activation
-// https://en.wikipedia.org/wiki/Sigmoid_function
-NeuralNetwork.sigmoid = function(x) {
-  var y = 1 / (1 + pow(Math.E, -x));
-  return y;
-}
+//   dispose() {
+//     this.model.dispose();
+//   }
 
-// This is the Sigmoid derivative!
-NeuralNetwork.dSigmoid = function(x) {
-  return x * (1 - x);
-}
+//   mutate(rate) {
+//     tf.tidy(() => {
+//       const weights = this.model.getWeights();
+//       const mutatedWeights = [];
+//       weights.forEach((tensor, i) => {
+//         const { shape } = tensor;
+//         const values = tensor.dataSync().slice();
+//         values.forEach((w, j) => {
+//           if (random(1) < rate) {
+//             values[j] = w + randomGaussian();
+//           }
+//         });
+//         const newTensor = tf.tensor(values, shape);
+//         mutatedWeights.push(newTensor);
+//       });
+//       this.model.setWeights(mutatedWeights);
+//     });
+//   }
 
-NeuralNetwork.tanh = function(x) {
-  var y = Math.tanh(x);
-  return y;
-}
+//   createModel() {
+//     const model = tf.sequential();
+//     model.add(
+//       tf.layers.dense({
+//         inputShape: [this.in],
+//         units: this.hn,
+//         activation: "relu",
+//       })
+//     );
+//     model.add(
+//       tf.layers.dense({
+//         units: this.on,
+//         activation: "softmax",
+//       })
+//     );
+//     return model;
+//   }
+//   query(arr) {
+//     return tf.tidy(() => {
+//       if (arr.length != this.in) {
+//         throw new Error(
+//           "The array's length is not equal to the number of inputs"
+//         );
+//       }
 
-NeuralNetwork.dtanh = function(x) {
-  var y = 1 / (pow(Math.cosh(x), 2));
-  return y;
-}
+//       const xs = tf.tensor2d([arr]);
+//       const ys = this.model.predict(xs).dataSync();
+//       return ys;
+//     });
+//   }
+// }
+// Other techniques for learning
 
-// This is how we adjust weights ever so slightly
-function mutate(x) {
-  if (random(1) < 0.1) {
-    var offset = randomGaussian() * 0.5;
-    // var offset = random(-0.1, 0.1);
-    var newx = x + offset;
-    return newx;
-  } else {
-    return x;
+class ActivationFunction {
+  constructor(func, dfunc) {
+    this.func = func;
+    this.dfunc = dfunc;
   }
 }
 
-// Neural Network constructor function
-function NeuralNetwork(inputnodes, hiddennodes, outputnodes, learning_rate, activation) {
+let sigmoid = new ActivationFunction(
+  (x) => 1 / (1 + Math.exp(-x)),
+  (y) => y * (1 - y)
+);
 
-  // If it's a copy of another NN
-  if (arguments[0] instanceof NeuralNetwork) {
-    var nn = arguments[0];
-    this.inodes = nn.inodes;
-    this.hnodes = nn.hnodes;
-    this.onodes = nn.onodes;
-    this.wih = nn.wih.copy();
-    this.who = nn.who.copy();
-    this.activation = nn.activation;
-    this.derivative = nn.derivative;
-    this.lr = this.lr;
-  } else {
-    // Number of nodes in layer (input, hidden, output)
-    // This network is limited to 3 layers
-    this.inodes = inputnodes;
-    this.hnodes = hiddennodes;
-    this.onodes = outputnodes;
+let tanh = new ActivationFunction(
+  (x) => Math.tanh(x),
+  (y) => 1 - y * y
+);
 
-    // These are the weight matrices
-    // wih: weights from input to hidden
-    // who: weights from hidden to output
-    // weights inside the arrays are w_i_j
-    // where link is from node i to node j in the next layer
-    // Matrix is rows X columns
-    this.wih = new Matrix(this.hnodes, this.inodes);
-    this.who = new Matrix(this.onodes, this.hnodes);
+function mapTensor(tensor, func) {
+  const data = tensor.dataSync().slice();
+  const { shape } = tensor;
+  for (let i = 0; i < data.length; i++) {
+    data[i] = func(data[i]);
+  }
+  return tf.tensor(data, shape);
+}
 
-    // Start with random values
-    this.wih.randomize();
-    this.who.randomize();
+function copyTensor(tensor) {
+  const data = tensor.dataSync();
+  const { shape } = tensor;
+  return tf.tensor(data, shape);
+}
 
-    // Default learning rate of 0.1
-    this.lr = learning_rate || 0.1;
+class NeuroEvolution {
+  /*
+   * if first argument is a NeuralNetwork the constructor clones it
+   * USAGE: cloned_nn = new NeuralNetwork(to_clone_nn);
+   */
+  constructor(arr) {
+    if (arr instanceof NeuroEvolution) {
+      this.nodes = arr.nodes;
 
-    // Activation Function
-    if (activation == 'tanh') {
-      this.activation = NeuralNetwork.tanh;
-      this.derivative = NeuralNetwork.dtanh;
+      this.weights = [];
+      this.biases = [];
+      for (let i = 0; i < arr.weights.length; i++) {
+        this.weights[i] = copyTensor(arr.weights[i]);
+      }
+      for (let i = 0; i < arr.biases.length; i++) {
+        this.biases[i] = copyTensor(arr.biases[i]);
+      }
     } else {
-      this.activation = NeuralNetwork.sigmoid;
-      this.derivative = NeuralNetwork.dSigmoid;
+      this.weights = [];
+      this.biases = [];
+
+      this.nodes = arr;
+
+      for (let i = 0; i < this.nodes.length - 1; i++) {
+        const num = this.nodes[i];
+        this.weights.push(
+          mapTensor(tf.zeros([arr[i + 1], num]), (e) => e + randomGaussian())
+        );
+      }
+
+      for (let i = 1; i < this.nodes.length; i++) {
+        const num = this.nodes[i];
+        this.biases.push(
+          mapTensor(tf.zeros([num, 1]), (e) => e + randomGaussian())
+        );
+      }
+
+      // this.weights_ih.print();
+      // this.weights_ho.print();
+      // console.log(this.weights_ih.shape);
+      // console.log(this.weights_ho.shape);
+      // this.bias_h = mapTensor(
+      //   tf.zeros([this.hidden_nodes, 1]),
+      //   (e) => e + randomGaussian()
+      // );
+      // this.bias_o = mapTensor(
+      //   tf.zeros([this.output_nodes, 1]),
+      //   (e) => e + randomGaussian()
+      // );
+      // // this.bias_h.print();
+      // this.bias_o.print();
+      // console.log(this.bias_h.shape);
+      // console.log(this.bias_o.shape);
     }
 
+    // TODO: copy these as well
+    this.setLearningRate();
+    this.setActivationFunction();
   }
 
-}
+  query(input_array) {
+    return tf.tidy(() => {
+      // Generating the Hidden Outputs
+      let weights = [tf.tensor2d(input_array, [input_array.length, 1])];
 
-NeuralNetwork.prototype.copy = function() {
-  return new NeuralNetwork(this);
-}
+      for (let i = 0; i < this.weights.length; i++) {
+        let weight = tf.dot(this.weights[i], weights[i]);
+        weight = weight.add(this.biases[i]);
+        // activation function!
+        weight = weight.sigmoid();
+        weights.push(weight);
+      }
 
-NeuralNetwork.prototype.mutate = function() {
-  this.wih = Matrix.map(this.wih, mutate);
-  this.who = Matrix.map(this.who, mutate);
-}
+      const data = Array.from(weights[weights.length - 1].dataSync());
+      // const sum = data.reduce((acc, val) => acc + val, 0);
+      // weights[weights.length - 1] = mapTensor(
+      //   weights[weights.length - 1],
+      //   (e) => e / sum
+      // );
+      //console.log(data);
+      // Sending back to the caller!
 
-// Train the network with inputs and targets
-NeuralNetwork.prototype.train = function(inputs_array, targets_array) {
+      // inputs.dispose();
+      // hidden.dispose();
+      // output.dispose();
 
-  // Turn input and target arrays into matrices
-  var inputs = Matrix.fromArray(inputs_array);
-  var targets = Matrix.fromArray(targets_array);
-
-  // The input to the hidden layer is the weights (wih) multiplied by inputs
-  var hidden_inputs = Matrix.dot(this.wih, inputs);
-  // The outputs of the hidden layer pass through sigmoid activation function
-  var hidden_outputs = Matrix.map(hidden_inputs, this.activation);
-
-  // The input to the output layer is the weights (who) multiplied by hidden layer
-  var output_inputs = Matrix.dot(this.who, hidden_outputs);
-
-  // The output of the network passes through sigmoid activation function
-  var outputs = Matrix.map(output_inputs, this.activation);
-
-  // Error is TARGET - OUTPUT
-  var output_errors = Matrix.subtract(targets, outputs);
-
-  // Now we are starting back propogation!
-
-  // Transpose hidden <-> output weights
-  var whoT = this.who.transpose();
-  // Hidden errors is output error multiplied by weights (who)
-  var hidden_errors = Matrix.dot(whoT, output_errors)
-
-  // Calculate the gradient, this is much nicer in python!
-  var gradient_output = Matrix.map(outputs, this.derivative);
-  // Weight by errors and learing rate
-  gradient_output.multiply(output_errors);
-  gradient_output.multiply(this.lr);
-
-  // Gradients for next layer, more back propogation!
-  var gradient_hidden = Matrix.map(hidden_outputs, this.derivative);
-  // Weight by errors and learning rate
-  gradient_hidden.multiply(hidden_errors);
-  gradient_hidden.multiply(this.lr);
-
-  // Change in weights from HIDDEN --> OUTPUT
-  var hidden_outputs_T = hidden_outputs.transpose();
-  var deltaW_output = Matrix.dot(gradient_output, hidden_outputs_T);
-  this.who.add(deltaW_output);
-
-  // Change in weights from INPUT --> HIDDEN
-  var inputs_T = inputs.transpose();
-  var deltaW_hidden = Matrix.dot(gradient_hidden, inputs_T);
-  this.wih.add(deltaW_hidden);
-}
-
-NeuralNetwork.prototype.save = function(name) {
-  saveJSON(this, `${name}.json`);
-}
-
-NeuralNetwork.load = function(data) {
-  if (typeof data == "string") {
-    data = JSON.parse(data);
+      return data;
+    });
   }
 
-  let nn = new NeuralNetwork(data.inodes, data.hnodes, data.onodes);
+  setLearningRate(learning_rate = 0.1) {
+    this.learning_rate = tf.scalar(learning_rate);
+  }
 
-  nn.wih = Matrix.deserialize(data.wih);
-  nn.who = Matrix.deserialize(data.who);
-  nn.lr = Matrix.deserialize(data.lr);
+  setActivationFunction(func = sigmoid) {
+    this.activation_function = func;
+  }
 
-  return nn;
+  dispose() {
+    for (let i = 0; i < this.weights.length; i++) {
+      this.weights[i].dispose();
+    }
+    for (let i = 0; i < this.biases.length; i++) {
+      this.biases[i].dispose();
+    }
+    this.learning_rate.dispose();
+  }
 
-}
+  train(input_array, target_array) {
+    // Generating the Hidden Outputs
+    let weights = [tf.tensor2d(input_array, [input_array.length, 1])];
 
-// Query the network!
-NeuralNetwork.prototype.query = function(inputs_array) {
+    for (let i = 0; i < this.weights.length; i++) {
+      let weight = tf.dot(this.weights[i], weights[i]);
+      weight = weight.add(this.biases[i]);
+      // activation function!
+      weight = weight.sigmoid();
+      weights.push(weight);
+    }
+    // const data = Array.from(weights[weights.length - 1].dataSync().slice());
+    // const sum = data.reduce((acc, val) => acc + val, 0);
+    // weights[weights.length - 1] = mapTensor(
+    //   weights[weights.length - 1],
+    //   (e) => e / sum
+    // );
+    //console.log(data);
+    // Sending back to the caller!
 
-  // Turn input array into a matrix
-  var inputs = Matrix.fromArray(inputs_array);
+    // inputs.dispose();
+    // hidden.dispose();
+    // output.dispose();
 
-  // The input to the hidden layer is the weights (wih) multiplied by inputs
-  var hidden_inputs = Matrix.dot(this.wih, inputs);
-  // The outputs of the hidden layer pass through sigmoid activation function
-  var hidden_outputs = Matrix.map(hidden_inputs, this.activation);
+    let errors = [];
+    // Convert array to matrix object
+    let targets = tf.tensor2d(target_array, [target_array.length, 1]);
 
-  // The input to the output layer is the weights (who) multiplied by hidden layer
-  var output_inputs = Matrix.dot(this.who, hidden_outputs);
+    // Calculate the error
+    // ERROR = TARGETS - OUTPUTS
+    let output_errors = tf.sub(targets, weights[weights.length - 1]);
 
-  // The output of the network passes through sigmoid activation function
-  var outputs = Matrix.map(output_inputs, this.activation);
+    errors.push(output_errors);
+    let gradientsArray = [];
+    let transposed = [];
+    let deltas = [];
 
-  // Return the result as an array
-  return outputs.toArray();
+    for (let i = weights.length - 1; i >= 1; i--) {
+      let index = weights.length - (i + 1);
+      //console.log(index);
+      // let gradient = outputs * (1 - outputs);
+      // Calculate gradient
+      let gradients = mapTensor(weights[i], this.activation_function.dfunc);
+      gradients = gradients.mul(errors[index]);
+      gradients = gradients.mul(this.learning_rate);
+
+      gradientsArray.push(gradients);
+
+      // Calculate deltas
+      let transposedTensor = tf.transpose(weights[i - 1]);
+      let weight_deltas = tf.dot(gradients, transposedTensor);
+
+      transposed.push(transposedTensor);
+      deltas.push(weight_deltas);
+
+      // Adjust the weights by deltas
+      this.weights[i - 1] = this.weights[i - 1].add(weight_deltas);
+      // Adjust the bias by its deltas (which is just the gradients)
+      this.biases[i - 1] = this.biases[i - 1].add(gradients);
+      // Calculate the hidden layer errors
+      let t = tf.transpose(this.weights[i - 1]);
+      let error = tf.dot(t, errors[index]);
+      errors.push(error);
+    }
+
+    for (let i = 0; i < weights.length; i++) {
+      weights[i].dispose();
+    }
+    // inputs.dispose();
+    // hidden.dispose();
+    // outputs.dispose();
+    targets.dispose();
+    for (let i = 0; i < errors.length; i++) {
+      errors[i].dispose();
+    }
+    for (let i = 0; i < gradientsArray.length; i++) {
+      gradientsArray[i].dispose();
+    }
+    for (let i = 0; i < transposed.length; i++) {
+      transposed[i].dispose();
+    }
+    for (let i = 0; i < deltas.length; i++) {
+      deltas[i].dispose();
+    }
+    // output_errors.dispose();
+    //gradients.dispose();
+    // hidden_T.dispose();
+    // weight_ho_deltas.dispose();
+    // who_t.dispose();
+    // hidden_errors.dispose();
+    //hidden_gradient.dispose();
+    // inputs_T.dispose();
+    // weight_ih_deltas.dispose();
+
+    // outputs.print();
+    // targets.print();
+    // error.print();
+  }
+
+  serialize() {
+    return JSON.stringify(this);
+  }
+
+  // static deserialize(data) {
+  //   if (typeof data == 'string') {
+  //     data = JSON.parse(data);
+  //   }
+  //   let nn = new NeuroEvolution(
+  //     data.input_nodes,
+  //     data.hidden_nodes,
+  //     data.output_nodes
+  //   );
+  //   nn.weights_ih = Matrix.deserialize(data.weights_ih);
+  //   nn.weights_ho = Matrix.deserialize(data.weights_ho);
+  //   nn.bias_h = Matrix.deserialize(data.bias_h);
+  //   nn.bias_o = Matrix.deserialize(data.bias_o);
+  //   nn.learning_rate = data.learning_rate;
+  //   return nn;
+  // }
+
+  // Adding function for neuro-evolution
+  copy() {
+    return new NeuroEvolution(this);
+  }
+
+  // Accept an arbitrary function for mutation
+  mutate(rate) {
+    for (let i = 0; i < this.weights.length; i++) {
+      const w = this.weights[i];
+      const data = w.dataSync().slice();
+      const { shape } = w;
+      for (let i = 0; i < data.length; i++) {
+        if (random(1) < rate) {
+          data[i] += randomGaussian() * 0.5;
+        }
+      }
+      this.weights[i] = tf.tensor2d(data, shape);
+    }
+
+    for (let i = 0; i < this.biases.length; i++) {
+      const w = this.biases[i];
+      const data = w.dataSync().slice();
+      const { shape } = w;
+      for (let i = 0; i < data.length; i++) {
+        if (random(1) < rate) {
+          data[i] += randomGaussian();
+        }
+      }
+      this.biases[i] = tf.tensor2d(data, shape);
+    }
+  }
+
+  save() {
+    const json = {
+      weights: [],
+      biases: [],
+      nodes: this.nodes,
+    };
+
+    for (let i = 0; i < this.weights.length; i++) {
+      const w = this.weights[i];
+      const data = w.dataSync();
+      json.weights[i] = {
+        weight: w,
+        data,
+      };
+    }
+    for (let i = 0; i < this.biases.length; i++) {
+      const w = this.biases[i];
+      const data = w.dataSync();
+      json.biases[i] = {
+        bias: w,
+        data,
+      };
+    }
+
+    saveJSON(json, "bestbird.json");
+  }
+
+  load(data) {
+    return tf.tidy(() => {
+      const nn = new NeuroEvolution(data.nodes);
+      for (let i = 0; i < data.weights.length; i++) {
+        const tensor = tf.tensor2d(
+          data.weights[i].data,
+          data.weights[i].weight.shape
+        );
+        nn.weights[i] = copyTensor(tensor);
+      }
+      for (let i = 0; i < data.biases.length; i++) {
+        const tensor = tf.tensor2d(
+          data.biases[i].data,
+          data.biases[i].bias.shape
+        );
+        nn.biases[i] = copyTensor(tensor);
+      }
+      return nn;
+    });
+  }
 }
