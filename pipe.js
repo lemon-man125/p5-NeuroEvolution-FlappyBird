@@ -3,10 +3,10 @@ class Pipe {
     this.spacing = 65;
     this.centery = random(this.spacing, height - this.spacing);
     this.pos = createVector(width, height);
-    this.vel = createVector(-2, 0);
+    this.vel = createVector(-6, 0);
     this.top = this.centery - this.spacing / 2;
     this.bottom = height - (this.centery + this.spacing / 2);
-    this.w = 75;
+    this.w = 80;
   }
 
   show(bestBird) {
@@ -25,7 +25,8 @@ class Pipe {
         this.bottom
       );
     } else {
-      fill(255);
+      fill(200);
+      noStroke();
       rect(this.pos.x, 0, this.w, this.top);
       rect(this.pos.x, this.pos.y - this.bottom, this.w, this.bottom);
     }
@@ -47,7 +48,10 @@ class Pipe {
       bird.pos.y - bird.r < this.top ||
       bird.pos.y + bird.r > height - this.bottom
     ) {
-      if (bird.pos.x > this.pos.x && bird.pos.x < this.pos.x + this.w) {
+      if (
+        bird.pos.x + bird.r > this.pos.x &&
+        bird.pos.x - bird.r < this.pos.x + this.w
+      ) {
         return true;
       }
     }
