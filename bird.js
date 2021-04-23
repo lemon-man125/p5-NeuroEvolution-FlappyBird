@@ -1,6 +1,6 @@
 class Bird {
   constructor(brain) {
-    this.r = 15;
+    this.r = 12;
     this.pos = createVector(64, height / 2);
     this.vel = createVector(0, 0);
     this.gravity = 0.8;
