@@ -143,14 +143,14 @@ class NeuroEvolution {
       for (let i = 0; i < this.nodes.length - 1; i++) {
         const num = this.nodes[i];
         this.weights.push(
-          mapTensor(tf.zeros([arr[i + 1], num]), (e) => e + randomGaussian(0, 0.1))
+          mapTensor(tf.zeros([arr[i + 1], num]), (e) => e + randomGaussian())
         );
       }
 
       for (let i = 1; i < this.nodes.length; i++) {
         const num = this.nodes[i];
         this.biases.push(
-          mapTensor(tf.zeros([num, 1]), (e) => e + randomGaussian(0, 0.1))
+          mapTensor(tf.zeros([num, 1]), (e) => e + randomGaussian())
         );
       }
 
