@@ -31,7 +31,7 @@ class Bird {
       if (this.highlight) {
         fill(0, 0, 255, 100);
       } else {
-        fill(255, 100);
+        fill(230, 245, 37, 100);
       }
       circle(this.pos.x, this.pos.y, this.r * 2);
       pop();

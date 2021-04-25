@@ -1,6 +1,6 @@
 class Pipe {
   constructor() {
-    this.spacing = random(65, height/2);
+    this.spacing = random(65, height / 2);
     this.centery = random(this.spacing, height - this.spacing);
     this.pos = createVector(width, height);
     this.vel = createVector(-6, 0);
@@ -25,7 +25,7 @@ class Pipe {
         this.bottom
       );
     } else {
-      fill(200);
+      fill(0, 127, 0);
       noStroke();
       rect(this.pos.x, 0, this.w, this.top);
       rect(this.pos.x, this.pos.y - this.bottom, this.w, this.bottom);
