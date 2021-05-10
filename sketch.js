@@ -120,7 +120,7 @@ function toggleState() {
 }
 
 function draw() {
-  background(100, 58, 245);
+  background(0, 165, 255);
   push();
   fill(210);
   textSize(32);
