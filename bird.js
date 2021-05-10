@@ -74,7 +74,7 @@ class Bird {
       // bottom of closest pipe opening
       //inputs[2] = map(height - closest.bottom, 0, height, -1, 1);
       inputs[2] = map(
-        abs(this.pos.y + r - (height - closest.bottom)),
+        abs(this.pos.y + this.r - (height - closest.bottom)),
         0,
         height - closest.bottom,
         -1,
