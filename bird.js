@@ -6,6 +6,8 @@ class Bird {
     this.gravity = 0.8;
     this.jumpForce = -12;
 
+    this.name = names[Math.floor(Math.random() * names.length)];
+
     this.score = 0;
     this.fitness = 0;
     if (brain instanceof NeuroEvolution) {

@@ -5,6 +5,19 @@ const MAX_TIMESTEPS = 10;
 const FIXED_TIMESTEPS = true;
 const AUTO_SAVE = false;
 
+const names = [
+  "Chris",
+  "Lesley",
+  "Nubia",
+  "Will",
+  "Teddy",
+  "Macy",
+  "Noah",
+  "Patrick",
+  "SpongeBob",
+  "Leo Messi",
+];
+
 let timeSteps = 1;
 let slider;
 let gen = 1;
@@ -290,21 +303,11 @@ function draw() {
   }
 
   topBirds.forEach((x, i) => {
+    const space = 15;
     textSize(16);
     textAlign(RIGHT, TOP);
     fill(255, 0, 0);
-    const names = [
-      "Chris",
-      "Lesley",
-      "Nubia",
-      "Will",
-      "Teddy",
-      "Macy",
-      "Noah",
-      "Patrick",
-      "SpongeBob",
-      "Leo Messi",
-    ];
-    text(`${i + 1}. ${random(names)}. Score: ${x.score}`, width, 0);
+
+    text(`${i + 1}. ${x.name}. Score: ${x.score}`, width, i * space);
   });
 }
