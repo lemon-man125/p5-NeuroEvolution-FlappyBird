@@ -305,6 +305,6 @@ function draw() {
       "SpongeBob",
       "Leo Messi",
     ];
-    text(`${i + 1}. ${random(names)}. Score: ${x.score}`);
+    text(`${i + 1}. ${random(names)}. Score: ${x.score}`, width, 0);
   });
 }
