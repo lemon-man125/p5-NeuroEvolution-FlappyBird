@@ -19,6 +19,8 @@ let highScoreSpan;
 let allTimeHighScoreSpan;
 let bestBird;
 
+let topBirds = [];
+
 // Button to highlight the bestbird during training;
 
 let highlightButton;
@@ -264,6 +266,13 @@ function draw() {
       }
     }
     //if (bestBird) print(bestBird.score + " right after all the if statements");
+
+    topBirds = activePlayers
+      .slice()
+      .sort((a, b) => a.score - b.score)
+      .reverse();
+
+    topBirds.splice(10, topBirds.length - 10);
   }
 
   for (const pipe of pipes) {
@@ -279,4 +288,23 @@ function draw() {
       player.show(false);
     }
   }
+
+  topBirds.forEach((x, i) => {
+    textSize(16);
+    textAlign(RIGHT, TOP);
+    fill(255, 0, 0);
+    const names = [
+      "Chris",
+      "Lesley",
+      "Nubia",
+      "Will",
+      "Teddy",
+      "Macy",
+      "Noah",
+      "Patrick",
+      "SpongeBob",
+      "Leo Messi",
+    ];
+    text(`${i + 1}. ${random(names)}. Score: ${x.score}`);
+  });
 }
