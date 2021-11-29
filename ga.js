@@ -25,8 +25,11 @@ function nextGeneration() {
 function generate(oldBirds) {
   let newBirds = [];
   for (let i = 0; i < oldBirds.length; i++) {
-    let player = poolSelection(oldBirds);
-    newBirds[i] = player;
+    const player1 = poolSelection(oldBirds);
+    const player2 = poolSelection(oldBirds);
+    const newBrain = player1.crossover(player2);
+    //console.log(newPlayer.brain);
+    newBirds[i] = new Bird(newBrain);
   }
   return newBirds;
 }
@@ -63,10 +66,10 @@ function poolSelection(players) {
 
   while (r > 0) {
     r -= players[index].fitness;
-    index += 1;
+    index++;
   }
 
-  index -= 1;
+  index--;
 
-  return players[index].copy();
+  return players[index];
 }

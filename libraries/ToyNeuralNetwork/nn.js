@@ -117,6 +117,33 @@ function copyTensor(tensor) {
   return tf.tensor(data, shape);
 }
 
+function combineTensors(a, b) {
+  return tf.tidy(() => {
+    if (a.shape.length != b.shape.length) return;
+    const data1 = a.dataSync().slice();
+    const { shape } = a;
+
+    const data2 = b.dataSync().slice();
+
+    const midpoint = floor(random(data1.length));
+    const newData = [];
+
+    for (let i = 0; i < data1.length; i++) {
+      if (i < midpoint) {
+        newData.push(data1[i]);
+      } else {
+        newData.push(data2[i]);
+      }
+    }
+
+    const newTensor = tf.keep(tf.tensor(newData, shape));
+
+    //console.log(newTensor);
+
+    return newTensor;
+  });
+}
+
 class NeuroEvolution {
   /*
    * if first argument is a NeuralNetwork the constructor clones it
@@ -124,7 +151,7 @@ class NeuroEvolution {
    */
   constructor(arr) {
     if (arr instanceof NeuroEvolution) {
-      this.nodes = arr.nodes;
+      this.nodes = arr.nodes.slice();
 
       this.weights = [];
       this.biases = [];
@@ -138,7 +165,7 @@ class NeuroEvolution {
       this.weights = [];
       this.biases = [];
 
-      this.nodes = arr;
+      this.nodes = arr.slice();
 
       for (let i = 0; i < this.nodes.length - 1; i++) {
         this.weights.push(
@@ -176,6 +203,27 @@ class NeuroEvolution {
     // TODO: copy these as well
     this.setLearningRate();
     this.setActivationFunction();
+  }
+
+  crossover(other) {
+    // Error handling;
+    if (
+      other.weights.length != this.weights.length &&
+      other.biases.length != this.biases.length
+    )
+      return;
+    const newBrain = new NeuroEvolution(this.nodes);
+
+    for (let i = 0; i < newBrain.weights.length; i++) {
+      newBrain.weights[i] = combineTensors(this.weights[i], other.weights[i]);
+    }
+
+    for (let i = 0; i < newBrain.biases.length; i++) {
+      newBrain.biases[i] = combineTensors(this.biases[i], other.biases[i]);
+    }
+
+    //console.log(newBrain);
+    return newBrain;
   }
 
   query(input_array) {

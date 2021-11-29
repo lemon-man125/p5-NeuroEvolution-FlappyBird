@@ -108,12 +108,16 @@ class Bird {
     this.vel.y += this.gravity;
   }
 
+  crossover(other) {
+    return this.brain.crossover(other.brain);
+  }
+
   jump() {
     this.vel.y += this.jumpForce;
   }
 
   mutate() {
-    this.brain.mutate();
+    this.brain.mutate(0.1);
   }
 
   edges() {
