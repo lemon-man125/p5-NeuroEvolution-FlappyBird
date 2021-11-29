@@ -207,7 +207,7 @@ function draw() {
       }
     }
 
-    if (counter % 75 === 0) {
+    if (counter % 175 === 0) {
       pipes.push(new Pipe());
     }
     counter++;

@@ -3,7 +3,7 @@ class Pipe {
     this.spacing = random(65, height / 2);
     this.centery = random(this.spacing, height - this.spacing);
     this.pos = createVector(width, height);
-    this.vel = createVector(-6, 0);
+    this.vel = createVector(-3, 0);
     this.top = this.centery - this.spacing / 2;
     this.bottom = height - (this.centery + this.spacing / 2);
     this.w = 80;

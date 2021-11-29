@@ -92,11 +92,17 @@ class Bird {
       if (results[0] > results[1]) {
         this.jump();
       }
+      if (
+        this.pos.y > closest.top &&
+        this.pos.y < closest.centery + closest.spacing / 2
+      ) {
+        this.score++;
+      }
     }
   }
 
   update() {
-    this.score++;
+    //this.score++;
 
     this.pos.y += this.vel.y;
     this.vel.y += this.gravity;
