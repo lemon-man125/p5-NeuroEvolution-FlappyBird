@@ -62,7 +62,7 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(600, 400).parent("canvas-wrapper");
+  createCanvas(600, 400, P2D).parent("canvas-wrapper");
   tf.setBackend("cpu");
 
   angleMode(DEGREES);
